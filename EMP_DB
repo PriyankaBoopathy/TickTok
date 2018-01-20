@@ -1,0 +1,111 @@
+//IN EMPLOYEE DB:
+
+//-----------CREATING COMPANY TABLE FOR GETTING COMPANY INFO-----------------
+mysql> create table CompanyTable(CompanyId int(3) zerofill not null auto_increment,CompanyCode int(4) not null auto_increment,CompanyName varchar(25),Address varchar(50),City varchar(25),PinCode int(8),State varchar(25),Country varchar(25),Phone int(13) unique,EmailId varchar(50) unique,PRIMARY KEY(CompanyId));
+Query OK, 0 rows affected (1.37 sec)
+
+mysql> desc CompanyTable;
++-------------+--------------------------+------+-----+---------+----------------+
+| Field       | Type                     | Null | Key | Default | Extra          |
++-------------+--------------------------+------+-----+---------+----------------+
+| CompanyId   | int(3) unsigned zerofill | NO   | PRI | NULL    | auto_increment |
+| CompanyName | varchar(25)              | YES  |     | NULL    |                |
+| Address     | varchar(50)              | YES  |     | NULL    |                |
+| City        | varchar(25)              | YES  |     | NULL    |                |
+| PinCode     | int(8)                   | YES  |     | NULL    |                |
+| State       | varchar(25)              | YES  |     | NULL    |                |
+| Country     | varchar(25)              | YES  |     | NULL    |                |
+| Phone       | int(13)                  | YES  | UNI | NULL    |                |
+| EmailId     | varchar(50)              | YES  | UNI | NULL    |                |
++-------------+--------------------------+------+-----+---------+----------------+
+9 rows in set (0.00 sec)
+
+	
+//---------CREATING EMPLOYEETABLE FOR THE COMPANY:----------------------
+
+
+mysql> create table EmployeeTable(CompanyId int(3) zerofill not null,EmployeeId int(3) zerofill not null auto_increment,FirstName varchar(30),LastName varchar(30),DOB date,EmailId varchar(50) unique,MobileNo int(13) unique,Address varchar(50),Type varchar(25),Role varchar(25),Department varchar(25),EmployeeProofType varchar(20),EmployeeProofNum varchar(20) unique,Status int(2) default 0,OTP int(10),Password varchar(20),LockValue int(2) default 0,Block int(2) default 0,key(EmployeeId));
+Query OK, 0 rows affected (1.14 sec)
+
+mysql> desc EmployeeTable;
++-------------------+--------------------------+------+-----+---------+----------------+
+| Field             | Type                     | Null | Key | Default | Extra          |
++-------------------+--------------------------+------+-----+---------+----------------+
+| CompanyId         | int(3) unsigned zerofill | NO   |     | NULL    |                |
+| EmployeeId        | int(3) unsigned zerofill | NO   | MUL | NULL    | auto_increment |
+| FirstName         | varchar(30)              | YES  |     | NULL    |                |
+| LastName          | varchar(30)              | YES  |     | NULL    |                |
+| DOB               | date                     | YES  |     | NULL    |                |
+| EmailId           | varchar(50)              | YES  | UNI | NULL    |                |
+| MobileNo          | int(13)                  | YES  | UNI | NULL    |                |
+| Address           | varchar(50)              | YES  |     | NULL    |                |
+| Type              | varchar(25)              | YES  |     | NULL    |                |
+| Role              | varchar(25)              | YES  |     | NULL    |                |
+| Department        | varchar(25)              | YES  |     | NULL    |                |
+| EmployeeProofType | varchar(20)              | YES  |     | NULL    |                |
+| EmployeeProofNum  | varchar(20)              | YES  | UNI | NULL    |                |
+| Status            | int(2)                   | YES  |     | 0       |                |
+| Password          | varchar(20)              | YES  |     | NULL    |                |
+| LockValue         | int(2)                   | YES  |     | 0       |                |
+| Block             | int(2)                   | YES  |     | 0       |                |
++-------------------+--------------------------+------+-----+---------+----------------+
+17 rows in set (0.00 sec)
+
+          
+//TRIGGER FOR EMPLOYEETABLE:
+
+delimiter #
+
+create trigger EmpAdd after insert on EmployeeTable
+for each row
+begin
+  insert into EmployeeAttendanceTable (CompanyId,EmployeeId,Name,Type) values (new.CompanyId, new.EmployeeId,CONCAT(new.FirstName,' ',new.LastName),new.type);
+end#
+
+delimiter ;
+
+
+//-------------CREATING EMPLOYEEATTENDANCETABLE-------------------
+
+mysql> create table EmployeeAttendanceTable(CompanyId int(3) zerofill  not null,EmployeeId int(3) zerofill not null,Name varchar(60),CheckinTime varchar(15) default '-' ,CheckoutTime varchar(15) default '-' ,TotalWorkHour varchar(15) default '-' ,Date datetime not null default current_timestamp,Type varchar(20),Authorization int(2) default 0,Status varchar(3) default 'A');
+Query OK, 0 rows affected (1.54 sec)
+
+mysql> desc EmployeeAttendanceTable;
++---------------+--------------------------+------+-----+-------------------+-------+
+| Field         | Type                     | Null | Key | Default           | Extra |
++---------------+--------------------------+------+-----+-------------------+-------+
+| CompanyId     | int(3) unsigned zerofill | NO   |     | NULL              |       |
+| EmployeeId    | int(3) unsigned zerofill | NO   |     | NULL              |       |
+| Name          | varchar(60)              | YES  |     | NULL              |       |
+| CheckinTime   | varchar(15)              | YES  |     | NULL              |       |
+| CheckoutTime  | varchar(15)              | YES  |     | NULL              |       |
+| TotalWorkHour | varchar(15)              | YES  |     | NULL              |       |
+| Date          | datetime                 | NO   |     | CURRENT_TIMESTAMP |       |
+| Type          | varchar(20)              | YES  |     | NULL              |       |
+| Authorization | int(2)                   | YES  |     | 0                 |       |
+| Status        | varchar(3)               | YES  |     | A                 |       |
++---------------+--------------------------+------+-----+-------------------+-------+
+10 rows in set (0.00 sec)
+
+//EVENT SCHEDULER FOR ATTENDANCETABLE INSERT OPERATION
+mysql>  create event EmpAttendance on schedule every 1 DAY STARTS '2017-12-29 00:00:00' do insert into EmployeeAttendanceTable(companyid,employeeid,name,type) select companyid,employeeid,concat(firstname,' ',lastname),type from EmployeeTable where EmployeeTable.status=0 and EmployeeTable.Role <> "propertier" ;
+
+
+//--------------CREATING EMPLOYEECONFIG TABLE----------------------
+
+mysql> create table EmployeeConfig(CompanyId int(3) zerofill not null,Department varchar(15),Role varchar(15),Permission varchar(100));
+Query OK, 0 rows affected (0.44 sec)
+
+mysql> desc EmployeeConfig;
++------------+--------------------------+------+-----+---------+-------+
+| Field      | Type                     | Null | Key | Default | Extra |
++------------+--------------------------+------+-----+---------+-------+
+| CompanyId  | int(3) unsigned zerofill | NO   |     | NULL    |       |
+| Department | varchar(15)              | YES  |     | NULL    |       |
+| Role       | varchar(15)              | YES  |     | NULL    |       |
+| Permission | varchar(100)             | YES  |     | NULL    |       |
++------------+--------------------------+------+-----+---------+-------+
+4 rows in set (0.01 sec)
+
+
+
